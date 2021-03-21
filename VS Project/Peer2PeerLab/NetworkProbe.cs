@@ -12,9 +12,16 @@ namespace Peer2PeerLab
     class NetworkProbe
     {
         private static bool resolveNames = true;
+        private static List<string> lanIPs = new List<string>();
+        private static int waitingOn = 254;
 
         // Constructor.
         public NetworkProbe()
+        {
+            Task probe = new Task(StartProbes);
+            probe.Start();
+        }
+        static void StartProbes()
         {
             Console.WriteLine("Network Probe starting...");
             IPHostEntry host = Dns.GetHostEntry(Dns.GetHostName());
@@ -35,13 +42,11 @@ namespace Peer2PeerLab
                 string ip = ipBase + i.ToString();
 
                 Ping p = new Ping();
-                p.PingCompleted += new PingCompletedEventHandler(p_PingCompleted);
+                p.PingCompleted += new PingCompletedEventHandler(ProbeCompleted);
                 p.SendAsync(ip, 100, ip);
             }
-            Console.ReadLine();
         }
-
-        static void p_PingCompleted(object sender, PingCompletedEventArgs e)
+        static void ProbeCompleted(object sender, PingCompletedEventArgs e)
         {
             string ip = (string)e.UserState;
             if (e.Reply != null && e.Reply.Status == IPStatus.Success)
@@ -64,15 +69,32 @@ namespace Peer2PeerLab
                 {
                     Console.WriteLine("{0} is up: ({1} ms)", ip, e.Reply.RoundtripTime);
                 }
+
+                lanIPs.Add(ip);
             }
             else if (e.Reply != null)
             {
-                //Console.WriteLine("{0} is NOT up: ({1} ms)", ip, e.Reply.RoundtripTime);
+                Console.WriteLine("{0} is NOT up: ({1} ms)", ip, e.Reply.RoundtripTime);
             }
             else if (e.Reply == null)
             {
                 Console.WriteLine("Pinging {0} failed. (Null Reply object?)", ip);
             }
+            waitingOn--;
+            Console.WriteLine(waitingOn);
+        }
+
+        public bool WaitingForPings()
+        {
+            if (waitingOn > 0)
+                return true;
+            else
+                return false;
+        }
+
+        public List<string> GetLANIP()
+        {
+            return lanIPs;
         }
     }
 }

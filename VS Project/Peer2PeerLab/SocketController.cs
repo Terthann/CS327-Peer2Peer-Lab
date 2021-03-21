@@ -15,7 +15,7 @@ namespace Peer2PeerLab
 {
 
     // State object for reading client data asynchronously  
-    public class StateObject
+    /*public class StateObject
     {
         // Size of receive buffer.  
         public const int BufferSize = 1024;
@@ -28,18 +28,15 @@ namespace Peer2PeerLab
 
         // Client socket.
         public Socket workSocket = null;
-    }
+    }*/
 
     class SocketController
     {
         // Thread signal.  
         public static ManualResetEvent allDone = new ManualResetEvent(false);
-        Label test;
 
-        public SocketController(Label label)
+        public SocketController()
         {
-            test = label;
-
             //Localipaddresses testPing = new Localipaddresses();
 
             Task testing = new Task(TestFunction);
@@ -176,7 +173,7 @@ namespace Peer2PeerLab
     }
 
     // State object for receiving data from remote device.  
-    public class StateObjectClient
+    /*public class StateObjectClient
     {
         // Client socket.  
         public Socket workSocket = null;
@@ -186,7 +183,7 @@ namespace Peer2PeerLab
         public byte[] buffer = new byte[BufferSize];
         // Received data string.  
         public StringBuilder sb = new StringBuilder();
-    }
+    }*/
 
     public class AsynchronousClient
     {
