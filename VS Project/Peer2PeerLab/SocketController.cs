@@ -8,6 +8,8 @@ using System.Net;
 using System.Net.Sockets;
 using System.Collections;
 using System.Windows.Forms;
+using System.Net.NetworkInformation;
+using System.Diagnostics;
 
 namespace Peer2PeerLab
 {
@@ -37,10 +39,15 @@ namespace Peer2PeerLab
         public SocketController(Label label)
         {
             test = label;
+
+            //Localipaddresses testPing = new Localipaddresses();
+
             Task testing = new Task(TestFunction);
             testing.Start();
 
             AsynchronousClient testClient = new AsynchronousClient();
+
+            
 
             //Thread listener = new Thread(TestFunction);
             //listener.Start();
@@ -53,7 +60,7 @@ namespace Peer2PeerLab
             Console.WriteLine("TestFunction() is called.");
             IPHostEntry host = Dns.GetHostEntry(Dns.GetHostName());
             IPAddress hostIP = host.AddressList[0];
-            IPEndPoint localEnd = new IPEndPoint(hostIP, 3333);
+            IPEndPoint localEnd = new IPEndPoint(hostIP, 33333);
 
             Socket testSocket = new Socket(hostIP.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 
@@ -61,7 +68,7 @@ namespace Peer2PeerLab
             {
                 testSocket.Bind(localEnd);
                 testSocket.Listen(100);
-
+                Console.WriteLine(testSocket.LocalEndPoint.ToString());
                 while (true)
                 {
                     // Set the event to nonsignaled state.  
@@ -208,11 +215,22 @@ namespace Peer2PeerLab
             // Connect to a remote device.  
             try
             {
-                // Establish the remote endpoint for the socket.  
-                // The name of the
-                // remote device is "host.contoso.com".  
+                // Establish the remote endpoint for the socket.
                 IPHostEntry ipHostInfo = Dns.GetHostEntry(Dns.GetHostName());
                 IPAddress ipAddress = ipHostInfo.AddressList[0];
+
+
+                //
+                foreach (IPAddress ip in ipHostInfo.AddressList)
+                {
+                    if (ip.AddressFamily == AddressFamily.InterNetwork)
+                    {
+                        Console.WriteLine("Local IP Address: " + ip.ToString());
+                    }
+                }
+                //
+
+
                 IPEndPoint remoteEP = new IPEndPoint(ipAddress, port);
 
                 // Create a TCP/IP socket.  
@@ -352,6 +370,106 @@ namespace Peer2PeerLab
             {
                 Console.WriteLine(e.ToString());
             }
+        }
+    }
+
+
+    //
+    //
+    //
+
+
+    class Localipaddresses
+    {
+        private static List<Ping> pingers = new List<Ping>();
+        private static int instances = 0;
+
+        private static object @lock = new object();
+
+        private static int result = 0;
+        private static int timeOut = 250;
+
+        private static int ttl = 5;
+
+        public Localipaddresses()
+        {
+            string baseIP = "192.168.1.";
+
+            Console.WriteLine("Pinging 255 destinations of D-class in {0}*", baseIP);
+
+            CreatePingers(255);
+
+            PingOptions po = new PingOptions(ttl, true);
+            System.Text.ASCIIEncoding enc = new System.Text.ASCIIEncoding();
+            byte[] data = enc.GetBytes("abababababababababababababababab");
+
+            SpinWait wait = new SpinWait();
+            int cnt = 1;
+
+            Stopwatch watch = Stopwatch.StartNew();
+            
+            foreach (Ping p in pingers)
+            {
+                lock (@lock)
+                {
+                    instances += 1;
+                }
+                Console.WriteLine("Pinging IP: " + string.Concat(baseIP, cnt.ToString()));
+                p.SendAsync(string.Concat(baseIP, cnt.ToString()), timeOut, data, po);
+                cnt += 1;
+            }
+            
+            while (instances > 0)
+            {
+                //Console.WriteLine("Made it here. " + instances);
+                wait.SpinOnce();
+            }
+            
+            watch.Stop();
+            
+            DestroyPingers();
+            
+            Console.WriteLine("Finished in {0}. Found {1} active IP-addresses.", watch.Elapsed.ToString(), result);
+            Console.ReadKey();
+
+        }
+
+        public static void Ping_completed(object s, PingCompletedEventArgs e)
+        {
+            lock (@lock)
+            {
+                instances -= 1;
+            }
+
+            if (e.Reply.Status == IPStatus.Success)
+            {
+                Console.WriteLine(string.Concat("Active IP: ", e.Reply.Address.ToString()));
+                result += 1;
+            }
+            else
+            {
+                Console.WriteLine(String.Concat("Non-active IP: ", e.Reply.Address.ToString()));
+            }
+        }
+
+        private static void CreatePingers(int cnt)
+        {
+            for (int i = 1; i <= cnt; i++)
+            {
+                Ping p = new Ping();
+                p.PingCompleted += Ping_completed;
+                pingers.Add(p);
+            }
+        }
+
+        private static void DestroyPingers()
+        {
+            foreach (Ping p in pingers)
+            {
+                p.PingCompleted -= Ping_completed;
+                p.Dispose();
+            }
+            pingers.Clear();
         }
     }
 }

@@ -17,6 +17,7 @@ namespace Peer2PeerLab
             InitializeComponent();
 
             SocketController testing = new SocketController(label1);
+            //NetworkProbe probe = new NetworkProbe();
         }
     }
 }
