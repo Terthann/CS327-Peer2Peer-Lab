@@ -27,8 +27,11 @@ namespace Peer2PeerLab
         public ClientSocket(List<string> ips)
         {
             lanIPs = ips;
-            Task client = new Task(StartClient);
-            client.Start();
+            foreach (string i in lanIPs)
+            {
+                Task client = new Task(() => StartClient(i));
+                client.Start();
+            }
         }
 
         // The port number for the remote device.  
@@ -42,45 +45,42 @@ namespace Peer2PeerLab
         // The response from the remote device.  
         private static String response = String.Empty;
 
-        private static void StartClient()
+        private static void StartClient(string ip)
         {
-            foreach (string i in lanIPs)
+            // Connect to a remote device.  
+            try
             {
-                // Connect to a remote device.  
-                try
-                {
-                    // Establish the remote endpoint for the socket.
-                    IPAddress ipAddress = IPAddress.Parse(i);
+                // Establish the remote endpoint for the socket.
+                IPAddress ipAddress = IPAddress.Parse(ip);
 
-                    IPEndPoint remoteEP = new IPEndPoint(ipAddress, port);
+                IPEndPoint remoteEP = new IPEndPoint(ipAddress, port);
 
-                    // Create a TCP/IP socket.  
-                    Socket client = new Socket(ipAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+                // Create a TCP/IP socket.  
+                Socket client = new Socket(ipAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 
-                    // Connect to the remote endpoint.  
-                    client.BeginConnect(remoteEP, new AsyncCallback(ConnectCallback), client);
-                    connectDone.WaitOne();
+                // Connect to the remote endpoint.  
+                client.BeginConnect(remoteEP, new AsyncCallback(ConnectCallback), client);
+                connectDone.WaitOne();
 
-                    // Send test data to the remote device.  
-                    Send(client, "This is a test<EOF>");
-                    sendDone.WaitOne();
+                // Send test data to the remote device.  
+                Send(client, "This is a test<EOF>");
+                sendDone.WaitOne();
 
-                    // Receive the response from the remote device.  
-                    Receive(client);
-                    receiveDone.WaitOne();
+                // Receive the response from the remote device.  
+                Receive(client);
+                receiveDone.WaitOne();
 
-                    // Write the response to the console.  
-                    Console.WriteLine("Response received : {0}", response);
+                // Write the response to the console.  
+                Console.WriteLine("Response received : {0}", response);
 
-                    // Release the socket.  
-                    client.Shutdown(SocketShutdown.Both);
-                    client.Close();
+                // Release the socket.  
+                client.Shutdown(SocketShutdown.Both);
+                client.Close();
 
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine(e.ToString());
-                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.ToString());
             }
         }
 
