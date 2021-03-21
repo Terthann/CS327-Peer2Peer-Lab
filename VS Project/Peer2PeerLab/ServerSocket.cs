@@ -30,6 +30,7 @@ namespace Peer2PeerLab
         // Thread signal.
         public static ManualResetEvent allDone = new ManualResetEvent(false);
         IPAddress localIP;
+        ClientSocket client;
 
         public ServerSocket(List<string> lanIPs)
         {
@@ -46,6 +47,8 @@ namespace Peer2PeerLab
 
             Task server = new Task(StartServer);
             server.Start();
+
+            client = new ClientSocket(lanIPs);
         }
 
         void StartServer()

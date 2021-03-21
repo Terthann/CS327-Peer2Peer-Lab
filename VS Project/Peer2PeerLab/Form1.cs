@@ -37,6 +37,7 @@ namespace Peer2PeerLab
         void StartServer(NetworkProbe probe)
         {
             server = new ServerSocket(probe.GetLANIP());
+            
         }
     }
 }
