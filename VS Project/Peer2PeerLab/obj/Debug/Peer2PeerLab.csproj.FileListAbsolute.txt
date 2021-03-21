@@ -1,0 +1,10 @@
+D:\CS327-Peer2Peer-Lab\VS Project\Peer2PeerLab\bin\Debug\Peer2PeerLab.exe.config
+D:\CS327-Peer2Peer-Lab\VS Project\Peer2PeerLab\bin\Debug\Peer2PeerLab.exe
+D:\CS327-Peer2Peer-Lab\VS Project\Peer2PeerLab\bin\Debug\Peer2PeerLab.pdb
+D:\CS327-Peer2Peer-Lab\VS Project\Peer2PeerLab\obj\Debug\Peer2PeerLab.csprojAssemblyReference.cache
+D:\CS327-Peer2Peer-Lab\VS Project\Peer2PeerLab\obj\Debug\Peer2PeerLab.Properties.Resources.resources
+D:\CS327-Peer2Peer-Lab\VS Project\Peer2PeerLab\obj\Debug\Peer2PeerLab.csproj.GenerateResource.cache
+D:\CS327-Peer2Peer-Lab\VS Project\Peer2PeerLab\obj\Debug\Peer2PeerLab.csproj.CoreCompileInputs.cache
+D:\CS327-Peer2Peer-Lab\VS Project\Peer2PeerLab\obj\Debug\Peer2PeerLab.exe
+D:\CS327-Peer2Peer-Lab\VS Project\Peer2PeerLab\obj\Debug\Peer2PeerLab.pdb
+D:\CS327-Peer2Peer-Lab\VS Project\Peer2PeerLab\obj\Debug\Peer2PeerLab.Form1.resources

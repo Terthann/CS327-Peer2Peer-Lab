@@ -15,6 +15,8 @@ namespace Peer2PeerLab
         public Form1()
         {
             InitializeComponent();
+
+            SocketController testing = new SocketController(label1);
         }
     }
 }
