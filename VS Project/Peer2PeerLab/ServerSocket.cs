@@ -70,7 +70,7 @@ namespace Peer2PeerLab
                     // Start an asynchronous socket to listen for connections.  
                     Console.WriteLine("Waiting for a connection...");
                     server.BeginAccept(new AsyncCallback(AcceptCallback), server);
-
+                    
                     // Wait until a connection is made before continuing.  
                     allDone.WaitOne();
                 }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -72,6 +73,15 @@ namespace Peer2PeerLab
 
                 // Write the response to the console.  
                 Console.WriteLine("Response received : {0}", response);
+
+                if (response == "This is a test<EOF>")
+                {
+                    foreach (string s in new FileManager().EnumerateFilesRecursively(Directory.GetCurrentDirectory() + "\\Files to Sync"))
+                    {
+                        SendFile(s, client);
+                        sendDone.WaitOne();
+                    }
+                }
 
                 // Release the socket.  
                 client.Shutdown(SocketShutdown.Both);
@@ -184,6 +194,31 @@ namespace Peer2PeerLab
                 Console.WriteLine("Sent {0} bytes to server.", bytesSent);
 
                 // Signal that all bytes have been sent.  
+                sendDone.Set();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.ToString());
+            }
+        }
+
+        private static void SendFile(string file, Socket client)
+        {
+            client.BeginSendFile(file, new AsyncCallback(SendFileCallback), client);
+        }
+
+        private static void SendFileCallback(IAsyncResult ar)
+        {
+            try
+            {
+                // Retrieve the socket from the state object.  
+                Socket client = (Socket)ar.AsyncState;
+
+                // Complete sending the file to the remote device.
+                client.EndSendFile(ar);
+                Console.WriteLine("Sent file to server.");
+
+                // Signal that all bytes have been sent.
                 sendDone.Set();
             }
             catch (Exception e)

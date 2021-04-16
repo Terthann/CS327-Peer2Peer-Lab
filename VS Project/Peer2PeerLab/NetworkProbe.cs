@@ -30,7 +30,7 @@ namespace Peer2PeerLab
             {
                 if (ip.AddressFamily == AddressFamily.InterNetwork)
                 {
-                    Console.WriteLine("Local IP Address: " + ip.ToString());
+                    //Console.WriteLine("Local IP Address: " + ip.ToString());
                     localIP = ip.ToString();
                 }
             }
@@ -63,25 +63,25 @@ namespace Peer2PeerLab
                     {
                         name = "?";
                     }
-                    Console.WriteLine("{0} ({1}) is up: ({2} ms)", ip, name, e.Reply.RoundtripTime);
+                    //Console.WriteLine("{0} ({1}) is up: ({2} ms)", ip, name, e.Reply.RoundtripTime);
                 }
                 else
                 {
-                    Console.WriteLine("{0} is up: ({1} ms)", ip, e.Reply.RoundtripTime);
+                    //Console.WriteLine("{0} is up: ({1} ms)", ip, e.Reply.RoundtripTime);
                 }
 
                 lanIPs.Add(ip);
             }
             else if (e.Reply != null)
             {
-                Console.WriteLine("{0} is NOT up: ({1} ms)", ip, e.Reply.RoundtripTime);
+                //Console.WriteLine("{0} is NOT up: ({1} ms)", ip, e.Reply.RoundtripTime);
             }
             else if (e.Reply == null)
             {
-                Console.WriteLine("Pinging {0} failed. (Null Reply object?)", ip);
+                //Console.WriteLine("Pinging {0} failed. (Null Reply object?)", ip);
             }
             waitingOn--;
-            Console.WriteLine(waitingOn);
+            //Console.WriteLine(waitingOn);
         }
 
         public bool WaitingForPings()
