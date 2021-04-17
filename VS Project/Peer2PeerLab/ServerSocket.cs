@@ -91,7 +91,7 @@ namespace Peer2PeerLab
                     }
                     else
                     {
-                        server.Send(Encoding.ASCII.GetBytes("server free"));
+                        //server.Send(Encoding.ASCII.GetBytes("server free"));
                         endCondition = "end";
                     }
                 }
@@ -100,6 +100,8 @@ namespace Peer2PeerLab
 
             while(true)
             {
+                server.Send(Encoding.ASCII.GetBytes("ready"));
+
                 Console.WriteLine("Server is ready to recieve next file.");
                 int size = server.Receive(buffer);
                 byte[] message = new byte[size];
@@ -107,6 +109,10 @@ namespace Peer2PeerLab
                 {
                     message[i] = buffer[i];
                 }
+
+                if (Encoding.ASCII.GetString(message) == "sync done")
+                    break;
+
                 Console.WriteLine("Message Contains: " + Encoding.ASCII.GetString(message));
                 string filePath = Encoding.ASCII.GetString(message);
 
@@ -181,6 +187,8 @@ namespace Peer2PeerLab
                     files.CreateFile(files.basePath + filePath, EnumerateFileBlocks(server));
                 }
             }
+
+            Console.WriteLine("Server finished syncing.");
         }
 
         public IEnumerable<byte[]> EnumerateFileBlocks(Socket server)

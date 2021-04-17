@@ -160,6 +160,12 @@ namespace Peer2PeerLab
                         }
                     }
 
+                    Console.WriteLine("Client finished syncing files.");
+
+                    client.Receive(buffer);
+
+                    client.Send(Encoding.ASCII.GetBytes("sync done"));
+
                     // Finished Syncing
                     files.isSyncing = false;
                     syncDone.Set();
