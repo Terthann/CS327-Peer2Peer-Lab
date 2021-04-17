@@ -98,7 +98,7 @@ namespace Peer2PeerLab
             }
             Console.WriteLine("End recieved.");
 
-            while(false)
+            while(true)
             {
                 Console.WriteLine("Server is ready to recieve next file.");
                 int size = server.Receive(buffer);
