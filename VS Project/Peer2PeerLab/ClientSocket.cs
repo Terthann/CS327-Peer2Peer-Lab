@@ -80,10 +80,13 @@ namespace Peer2PeerLab
                     } while (Encoding.ASCII.GetString(message) == "server busy");
 
                     Console.WriteLine("Server is free.");
+                    client.Send(Encoding.ASCII.GetBytes("start sync"));
 
                     Console.WriteLine("Client starts syncing.");
                     foreach (string s in files.EnumerateFilesRecursively(files.syncPath))
                     {
+                        size = client.Receive(buffer);
+
                         Console.WriteLine("Client checking if server has file...");
                         client.Send(Encoding.ASCII.GetBytes(s.Replace(files.basePath,"")));
 

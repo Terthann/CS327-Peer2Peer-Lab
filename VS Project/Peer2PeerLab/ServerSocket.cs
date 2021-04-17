@@ -91,14 +91,16 @@ namespace Peer2PeerLab
                     }
                     else
                     {
-                        //server.Send(Encoding.ASCII.GetBytes("server free"));
+                        server.Send(Encoding.ASCII.GetBytes("server free"));
                         endCondition = "end";
                     }
                 }
             }
             Console.WriteLine("End recieved.");
 
-            while(true)
+            server.Receive(buffer);
+
+            while (true)
             {
                 server.Send(Encoding.ASCII.GetBytes("ready"));
 
