@@ -38,8 +38,6 @@ namespace Peer2PeerLab
             // Start the listening server.
             Task server = new Task(Listen);
             server.Start();
-
-            Console.WriteLine("Made it here 1.");
         }
 
         void Listen()
@@ -71,6 +69,8 @@ namespace Peer2PeerLab
 
             //server.BeginReceive();
             byte[] buffer = new byte[256];
+            int size;
+            byte[] message;
             string endCondition = "";
             while (endCondition != "end")
             {
@@ -105,8 +105,8 @@ namespace Peer2PeerLab
                 server.Send(Encoding.ASCII.GetBytes("ready"));
 
                 Console.WriteLine("Server is ready to recieve next file.");
-                int size = server.Receive(buffer);
-                byte[] message = new byte[size];
+                size = server.Receive(buffer);
+                message = new byte[size];
                 for (int i = 0; i < message.Length; i++)
                 {
                     message[i] = buffer[i];
@@ -191,6 +191,95 @@ namespace Peer2PeerLab
             }
 
             Console.WriteLine("Server finished syncing.");
+
+            server.Send(Encoding.ASCII.GetBytes("start sync"));
+
+            Console.WriteLine("Server starts syncing.");
+            foreach (string s in files.EnumerateFilesRecursively(files.syncPath))
+            {
+                size = server.Receive(buffer);
+
+                Console.WriteLine("Server checking if client has file...");
+                server.Send(Encoding.ASCII.GetBytes(s.Replace(files.basePath, "")));
+
+                size = server.Receive(buffer);
+                message = new byte[size];
+                for (int i = 0; i < message.Length; i++)
+                {
+                    message[i] = buffer[i];
+                }
+
+                Console.WriteLine("Client has file: " + Encoding.ASCII.GetString(message));
+                if (Encoding.ASCII.GetString(message) == "true")
+                {
+                    // compare hashes
+                    Console.WriteLine("Server compares hashes.");
+                    server.Send(files.localFiles[s.Replace(files.basePath, "")]);
+
+                    size = server.Receive(buffer);
+                    message = new byte[size];
+                    for (int i = 0; i < message.Length; i++)
+                    {
+                        message[i] = buffer[i];
+                    }
+
+                    Console.WriteLine("Files hashes are the same: " + Encoding.ASCII.GetString(message));
+                    if (Encoding.ASCII.GetString(message) == "true")
+                    {
+                        // files are the same, do nothing
+                    }
+                    else
+                    {
+                        // files are different, need to sync.
+                        // send time
+                        server.Send(Encoding.ASCII.GetBytes(files.GetLastWrite(s).ToString()));
+
+                        size = server.Receive(buffer);
+                        message = new byte[size];
+                        for (int i = 0; i < message.Length; i++)
+                        {
+                            message[i] = buffer[i];
+                        }
+
+                        // 
+                        Console.WriteLine("Server file most recent: " + Encoding.ASCII.GetString(message));
+                        if (Encoding.ASCII.GetString(message) == "true")
+                        {
+                            // send server file
+                            Console.WriteLine("Server sends file.");
+
+                            Console.WriteLine("File size: " + files.GetFileSize(s));
+                            server.Send(Encoding.ASCII.GetBytes(files.GetFileSize(s).ToString()));
+
+                            server.Receive(buffer);
+
+                            server.SendFile(s);
+                        }
+                        else
+                        {
+                            // do nothing
+                        }
+                    }
+                }
+                else
+                {
+                    // send file
+                    Console.WriteLine("Server sends file.");
+
+                    Console.WriteLine("File size: " + files.GetFileSize(s));
+                    server.Send(Encoding.ASCII.GetBytes(files.GetFileSize(s).ToString()));
+
+                    server.Receive(buffer);
+
+                    server.SendFile(s);
+                }
+            }
+
+            Console.WriteLine("Server finished all syncing.");
+
+            server.Receive(buffer);
+
+            server.Send(Encoding.ASCII.GetBytes("sync done"));
         }
 
         public IEnumerable<byte[]> EnumerateFileBlocks(Socket server)

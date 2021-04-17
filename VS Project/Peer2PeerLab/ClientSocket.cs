@@ -12,14 +12,16 @@ namespace Peer2PeerLab
     class ClientSocket
     {
         private FileManager files;
+        private ServerSocket server;
         private Dictionary<string, AutoResetEvent> connects = new Dictionary<string, AutoResetEvent>();
         private static Mutex mut = new Mutex();
         private AutoResetEvent syncDone = new AutoResetEvent(false);
 
         // Constructor.
-        public ClientSocket(FileManager f, List<string> ips)
+        public ClientSocket(FileManager f, ServerSocket s, List<string> ips)
         {
             files = f;
+            server = s;
 
             // Start the clients.
             foreach (string i in ips)
@@ -111,7 +113,7 @@ namespace Peer2PeerLab
                                 message[i] = buffer[i];
                             }
 
-                            Console.WriteLine("Files hashes are the sameL " + Encoding.ASCII.GetString(message));
+                            Console.WriteLine("Files hashes are the same: " + Encoding.ASCII.GetString(message));
                             if (Encoding.ASCII.GetString(message) == "true")
                             {
                                 // files are the same, do nothing
@@ -168,6 +170,100 @@ namespace Peer2PeerLab
                     client.Receive(buffer);
 
                     client.Send(Encoding.ASCII.GetBytes("sync done"));
+
+                    client.Receive(buffer);
+
+                    while (true)
+                    {
+                        client.Send(Encoding.ASCII.GetBytes("ready"));
+
+                        Console.WriteLine("Server is ready to recieve next file.");
+                        size = client.Receive(buffer);
+                        message = new byte[size];
+                        for (int i = 0; i < message.Length; i++)
+                        {
+                            message[i] = buffer[i];
+                        }
+
+                        if (Encoding.ASCII.GetString(message) == "sync done")
+                            break;
+
+                        Console.WriteLine("Message Contains: " + Encoding.ASCII.GetString(message));
+                        string filePath = Encoding.ASCII.GetString(message);
+
+                        Console.WriteLine("Server has file: " + files.HasFile(filePath));
+                        if (files.HasFile(filePath))
+                        {
+                            client.Send(Encoding.ASCII.GetBytes("true"));
+                            // compare hashes
+                            Console.WriteLine("Server is ready to compare hashes.");
+                            size = client.Receive(buffer);
+                            message = new byte[size];
+                            for (int i = 0; i < message.Length; i++)
+                            {
+                                message[i] = buffer[i];
+                            }
+                            Console.WriteLine("Message Contains: " + message.Length);
+
+                            Console.WriteLine("Files are the same: " + files.FileCompare(filePath, message));
+                            if (files.FileCompare(filePath, message))
+                            {
+                                // Files are the same, don't need to do anything.
+                                client.Send(Encoding.ASCII.GetBytes("true"));
+                            }
+                            else
+                            {
+                                // Files are different, need to sync.
+                                client.Send(Encoding.ASCII.GetBytes("false"));
+
+                                Console.WriteLine("Server is ready to compare dates.");
+                                // Compare date times.
+                                size = client.Receive(buffer);
+                                message = new byte[size];
+                                for (int i = 0; i < message.Length; i++)
+                                {
+                                    message[i] = buffer[i];
+                                }
+                                Console.WriteLine("Message Contains: " + Encoding.ASCII.GetString(message));
+
+                                DateTime date = DateTime.Parse(Encoding.ASCII.GetString(message));
+                                DateTime date2 = DateTime.Parse(files.GetLastWrite(files.basePath + filePath).ToString());
+                                //Console.WriteLine(date.Ticks.ToString());
+                                //Console.WriteLine(date2.Ticks.ToString());
+                                //Console.WriteLine(date.CompareTo(date2));
+
+                                Console.WriteLine("Client file is most recent: " + (date.CompareTo(date2) > 0));
+                                if (date.CompareTo(date2) > 0)
+                                {
+                                    // date later than date2
+                                    // keep date
+                                    Console.WriteLine("Client file is most recent.");
+
+                                    client.Send(Encoding.ASCII.GetBytes("true"));
+
+                                    // Wait to recieve file.
+                                    files.CreateFile(files.basePath + filePath, server.EnumerateFileBlocks(client));
+                                }
+                                else
+                                {
+                                    // date earlier than date2 or the same
+                                    // keep date2
+                                    Console.WriteLine("Server file is most recent.");
+
+                                    client.Send(Encoding.ASCII.GetBytes("false"));
+                                }
+                            }
+                        }
+                        else
+                        {
+                            client.Send(Encoding.ASCII.GetBytes("false"));
+
+                            // Wait to recieve file.
+                            files.CreateFile(files.basePath + filePath, server.EnumerateFileBlocks(client));
+                        }
+                    }
+
+                    Console.WriteLine("Client finished all syncing.");
 
                     // Finished Syncing
                     files.isSyncing = false;
