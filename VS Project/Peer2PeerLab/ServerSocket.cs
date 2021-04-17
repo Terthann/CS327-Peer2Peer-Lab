@@ -157,12 +157,19 @@ namespace Peer2PeerLab
                             // date later than date2
                             // keep date
                             Console.WriteLine("Client file is most recent.");
+
+                            server.Send(Encoding.ASCII.GetBytes("true"));
+
+                            // Wait to recieve file.
+                            files.CreateFile(files.basePath + filePath, EnumerateFileBlocks(server));
                         }
                         else
                         {
                             // date earlier than date2 or the same
                             // keep date2
                             Console.WriteLine("Server file is most recent.");
+
+                            server.Send(Encoding.ASCII.GetBytes("false"));
                         }
                     }
                 }
@@ -172,7 +179,6 @@ namespace Peer2PeerLab
 
                     // Wait to recieve file.
                     files.CreateFile(files.basePath + filePath, EnumerateFileBlocks(server));
-                    
                 }
             }
         }
