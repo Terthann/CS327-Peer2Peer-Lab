@@ -154,7 +154,7 @@ namespace Peer2PeerLab
                         Console.WriteLine("Message Contains: " + Encoding.ASCII.GetString(message));
 
                         DateTime date = DateTime.Parse(Encoding.ASCII.GetString(message));
-                        DateTime date2 = DateTime.Parse(files.GetTimeCreated(files.basePath + filePath).ToString());
+                        DateTime date2 = DateTime.Parse(files.GetLastWrite(files.basePath + filePath).ToString());
                         //Console.WriteLine(date.Ticks.ToString());
                         //Console.WriteLine(date2.Ticks.ToString());
                         //Console.WriteLine(date.CompareTo(date2));

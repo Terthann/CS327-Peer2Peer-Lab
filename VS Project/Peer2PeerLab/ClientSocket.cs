@@ -120,7 +120,7 @@ namespace Peer2PeerLab
                             {
                                 // files are different, need to sync.
                                 // send time
-                                client.Send(Encoding.ASCII.GetBytes(files.GetTimeCreated(s).ToString()));
+                                client.Send(Encoding.ASCII.GetBytes(files.GetLastWrite(s).ToString()));
 
                                 size = client.Receive(buffer);
                                 message = new byte[size];
