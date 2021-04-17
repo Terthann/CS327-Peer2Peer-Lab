@@ -12,7 +12,8 @@ namespace Peer2PeerLab
     class ClientSocket
     {
         private FileManager files;
-        private AutoResetEvent connectDone = new AutoResetEvent(false);
+        private Dictionary<string, AutoResetEvent> connects = new Dictionary<string, AutoResetEvent>();
+        //private AutoResetEvent connectDone = new AutoResetEvent(false);
         private AutoResetEvent syncDone = new AutoResetEvent(false);
 
         // Constructor.
@@ -23,7 +24,8 @@ namespace Peer2PeerLab
             // Start the clients.
             foreach (string i in ips)
             {
-                Console.WriteLine("Client " + i + " Started.");
+                //Console.WriteLine("Client " + i + " Started.");
+                connects.Add(i, new AutoResetEvent(false));
                 Task client = new Task(() => Connect(i));
                 client.Start();
             }
@@ -31,7 +33,7 @@ namespace Peer2PeerLab
 
         void Connect(string ip)
         {
-            Console.WriteLine("Start Connect");
+            //Console.WriteLine("Start Connect");
             IPAddress ipAddress = IPAddress.Parse(ip);
             IPEndPoint localEnd = new IPEndPoint(ipAddress, 33333);
             Socket client = new Socket(ipAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
@@ -46,7 +48,7 @@ namespace Peer2PeerLab
             }
 
             // Lock the blocker.
-            connectDone.WaitOne();
+            connects[ip].WaitOne();
             Console.WriteLine(ip);
             byte[] buffer = new byte[256];
             client.Send(Encoding.ASCII.GetBytes("p2p system"));
@@ -140,13 +142,13 @@ namespace Peer2PeerLab
                 client.EndConnect(result);
 
                 Console.WriteLine("Client connect successful.");
-                
+
                 // Free the blocker.
-                connectDone.Set();
+                connects[client.RemoteEndPoint.ToString().Replace(":33333","")].Set();
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.ToString());
+                //Console.WriteLine(e.ToString());
             }
         }
     }
