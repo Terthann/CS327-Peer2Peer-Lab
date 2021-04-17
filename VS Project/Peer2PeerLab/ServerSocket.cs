@@ -84,9 +84,16 @@ namespace Peer2PeerLab
 
                 if (Encoding.ASCII.GetString(buffer).Contains("sync"))
                 {
-                    Console.WriteLine(files.isSyncing);
-                    server.Send(Encoding.ASCII.GetBytes("true"));
-                    endCondition = "end";
+                    Console.WriteLine("Server files syncing: " + files.isSyncing);
+                    if (files.isSyncing)
+                    {
+
+                    }
+                    else
+                    {
+                        server.Send(Encoding.ASCII.GetBytes("server free"));
+                        endCondition = "end";
+                    }
                 }
             }
             Console.WriteLine("End recieved.");

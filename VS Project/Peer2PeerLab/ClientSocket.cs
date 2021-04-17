@@ -50,29 +50,47 @@ namespace Peer2PeerLab
             // Lock the blocker.
             connects[ip].WaitOne();
             Console.WriteLine(ip);
-            byte[] buffer = new byte[256];
+            
+            Console.WriteLine("Client checking if P2P system...");
             client.Send(Encoding.ASCII.GetBytes("p2p system"));
 
-            client.Receive(buffer);
+            byte[] buffer = new byte[256];
+            int size = client.Receive(buffer);
+            byte[] message = new byte[size];
 
-            if (Encoding.ASCII.GetString(buffer).Contains("true"))
+            for (int i = 0; i < message.Length; i++)
+            {
+                message[i] = buffer[i];
+            }
+
+            if (Encoding.ASCII.GetString(message) == "true")
             {
                 Console.WriteLine("Connected with P2P system.");
                 if (!files.isSyncing)
                 {
+                    Console.WriteLine("Client is not currently syncing.");
                     files.isSyncing = true;
+                    Console.WriteLine("Client checking if server is currently syncing...");
                     client.Send(Encoding.ASCII.GetBytes("sync"));
 
-                    client.Receive(buffer);
+                    do
+                    {
+                        size = client.Receive(buffer);
+                        message = new byte[size];
+                        for (int i = 0; i < message.Length; i++)
+                        {
+                            message[i] = buffer[i];
+                        }
+                    } while (Encoding.ASCII.GetString(message) == "server busy");
 
-                    Console.WriteLine("Response recieved.");
+                    Console.WriteLine("Server is free.");
 
                     foreach (string s in files.EnumerateFilesRecursively(files.syncPath))
                     {
                         client.Send(Encoding.ASCII.GetBytes(s.Replace(files.basePath,"")));
 
-                        int size = client.Receive(buffer);
-                        byte[] message = new byte[size];
+                        size = client.Receive(buffer);
+                        message = new byte[size];
                         for (int i = 0; i < message.Length; i++)
                         {
                             message[i] = buffer[i];
