@@ -10,9 +10,13 @@ namespace Peer2PeerLab
 {
     class FileManager
     {
+        // Flag to check if files are currently being synced.
         public bool isSyncing;
+        // The path to the .exe file.
         public string basePath;
+        // The patht to the sync folder.
         public string syncPath;
+        // Table to store files and their hashes.
         public Dictionary<string, byte[]> localFiles;
 
         // Constructor.

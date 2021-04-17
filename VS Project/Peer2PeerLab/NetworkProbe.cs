@@ -12,35 +12,31 @@ namespace Peer2PeerLab
 {
     class NetworkProbe
     {
+        // Mutex lock for working with threads.
         private static Mutex mut = new Mutex();
-        private AutoResetEvent probeDone = new AutoResetEvent(false);
+        // Blocker to block until the probe is finished.
+        private static AutoResetEvent probeDone = new AutoResetEvent(false);
+        // List of local active IP addresses.
         private static List<string> lanIPs = new List<string>();
+        // Counter of active probes.
         private static int waitingOn = 256;
 
         // Constructor.
         public NetworkProbe()
         {
-            Task probe = new Task(StartProbes);
+            // Start the probe in a new thread.
+            Task probe = new Task(StartProbe);
             probe.Start();
-            WaitForProbe();
+            // Block until probe finished.
             probeDone.WaitOne();
-            
         }
 
-        async void WaitForProbe()
+        // Generate a ping to each potential local IP address.
+        static void StartProbe()
         {
-            while (WaitingForPings())
-            {
-                //Console.WriteLine("Remaining Pings: " + waitingOn);
-                await Task.Delay(100);
-            }
-            Console.WriteLine("Done waiting.");
-            probeDone.Set();
-        }
+            Console.WriteLine("Network probe starting...");
 
-        static void StartProbes()
-        {
-            Console.WriteLine("Network Probe starting...");
+            // Get the host IP address.
             IPHostEntry host = Dns.GetHostEntry(Dns.GetHostName());
             string localIP = "";
             foreach (IPAddress ip in host.AddressList)
@@ -51,6 +47,8 @@ namespace Peer2PeerLab
                     localIP = ip.ToString();
                 }
             }
+
+            // Split up the host IP to get the first three parts of the LAN IP, then generate all potential fourth parts. (0-255)
             Console.WriteLine("Pinging local network...");
             string[] ipParts = localIP.Split('.');
             string ipBase = ipParts[0] + "." + ipParts[1] + "." + ipParts[2] + ".";
@@ -59,10 +57,14 @@ namespace Peer2PeerLab
                 string ip = ipBase + i.ToString();
                 //Console.WriteLine("Pinging: " + ip);
                 Ping p = new Ping();
+                // When a ping is finished call ProbeCompleted().
                 p.PingCompleted += new PingCompletedEventHandler(ProbeCompleted);
+                // Send each ping asyncronously with a timeout of 100ms.
                 p.SendAsync(ip, 100, ip);
             }
         }
+
+        // When a ping is completed reduce the waiting counter, and if a reply was recieved add the ip to the list.
         static void ProbeCompleted(object sender, PingCompletedEventArgs e)
         {
             string ip = (string)e.UserState;
@@ -94,13 +96,24 @@ namespace Peer2PeerLab
             {
                 //Console.WriteLine("Pinging {0} failed. (Null Reply object?)", ip);
             }
+
+            // Use the mutex lock to guarentee accurate reading and updating of the waiting counter.
             mut.WaitOne();
             waitingOn--;
-            mut.ReleaseMutex();
             //Console.WriteLine(waitingOn);
+
+            // Check if waiting for more pings to finish.
+            if (!WaitingForPings())
+            {
+                Console.WriteLine("Done waiting.");
+                // Release the block.
+                probeDone.Set();
+            }
+            mut.ReleaseMutex();
         }
 
-        public bool WaitingForPings()
+        // Checks if any pings have not completed yet.
+        public static bool WaitingForPings()
         {
             if (waitingOn > 0)
                 return true;
@@ -108,6 +121,7 @@ namespace Peer2PeerLab
                 return false;
         }
 
+        // Get the list of ips.
         public List<string> GetLANIP()
         {
             return lanIPs;
