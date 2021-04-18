@@ -272,6 +272,7 @@ namespace Peer2PeerLab
                 else
                 {
                     // Waiting for another client to finish syncing.
+                    Console.WriteLine("Waiting on another client to finish.");
                     mut.ReleaseMutex();
                 }
             }
