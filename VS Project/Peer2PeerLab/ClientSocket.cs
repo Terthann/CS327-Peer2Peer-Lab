@@ -89,7 +89,7 @@ namespace Peer2PeerLab
                     {
                         size = client.Receive(buffer);
 
-                        Console.WriteLine("Client checking if server has file...");
+                        Console.WriteLine("\nClient checking if server has file...");
                         client.Send(Encoding.ASCII.GetBytes(s.Replace(files.basePath,"")));
 
                         size = client.Receive(buffer);
@@ -177,7 +177,7 @@ namespace Peer2PeerLab
                     {
                         client.Send(Encoding.ASCII.GetBytes("ready"));
 
-                        Console.WriteLine("Server is ready to recieve next file.");
+                        Console.WriteLine("\nClient is ready to recieve next file.");
                         size = client.Receive(buffer);
                         message = new byte[size];
                         for (int i = 0; i < message.Length; i++)
@@ -188,22 +188,22 @@ namespace Peer2PeerLab
                         if (Encoding.ASCII.GetString(message) == "sync done")
                             break;
 
-                        Console.WriteLine("Message Contains: " + Encoding.ASCII.GetString(message));
+                        //Console.WriteLine("Message Contains: " + Encoding.ASCII.GetString(message));
                         string filePath = Encoding.ASCII.GetString(message);
 
-                        Console.WriteLine("Server has file: " + files.HasFile(filePath));
+                        Console.WriteLine("Client has file: " + files.HasFile(filePath));
                         if (files.HasFile(filePath))
                         {
                             client.Send(Encoding.ASCII.GetBytes("true"));
                             // compare hashes
-                            Console.WriteLine("Server is ready to compare hashes.");
+                            Console.WriteLine("Client is ready to compare hashes.");
                             size = client.Receive(buffer);
                             message = new byte[size];
                             for (int i = 0; i < message.Length; i++)
                             {
                                 message[i] = buffer[i];
                             }
-                            Console.WriteLine("Message Contains: " + message.Length);
+                            //Console.WriteLine("Message Contains: " + message.Length);
 
                             Console.WriteLine("Files are the same: " + files.FileCompare(filePath, message));
                             if (files.FileCompare(filePath, message))
@@ -216,7 +216,7 @@ namespace Peer2PeerLab
                                 // Files are different, need to sync.
                                 client.Send(Encoding.ASCII.GetBytes("false"));
 
-                                Console.WriteLine("Server is ready to compare dates.");
+                                Console.WriteLine("Client is ready to compare dates.");
                                 // Compare date times.
                                 size = client.Receive(buffer);
                                 message = new byte[size];
@@ -224,7 +224,7 @@ namespace Peer2PeerLab
                                 {
                                     message[i] = buffer[i];
                                 }
-                                Console.WriteLine("Message Contains: " + Encoding.ASCII.GetString(message));
+                                //Console.WriteLine("Message Contains: " + Encoding.ASCII.GetString(message));
 
                                 DateTime date = DateTime.Parse(Encoding.ASCII.GetString(message));
                                 DateTime date2 = DateTime.Parse(files.GetLastWrite(files.basePath + filePath).ToString());
@@ -232,12 +232,12 @@ namespace Peer2PeerLab
                                 //Console.WriteLine(date2.Ticks.ToString());
                                 //Console.WriteLine(date.CompareTo(date2));
 
-                                Console.WriteLine("Client file is most recent: " + (date.CompareTo(date2) > 0));
+                                Console.WriteLine("Server file is most recent: " + (date.CompareTo(date2) > 0));
                                 if (date.CompareTo(date2) > 0)
                                 {
                                     // date later than date2
                                     // keep date
-                                    Console.WriteLine("Client file is most recent.");
+                                    Console.WriteLine("Server file is most recent.");
 
                                     client.Send(Encoding.ASCII.GetBytes("true"));
 
@@ -248,7 +248,7 @@ namespace Peer2PeerLab
                                 {
                                     // date earlier than date2 or the same
                                     // keep date2
-                                    Console.WriteLine("Server file is most recent.");
+                                    Console.WriteLine("Client file is most recent.");
 
                                     client.Send(Encoding.ASCII.GetBytes("false"));
                                 }

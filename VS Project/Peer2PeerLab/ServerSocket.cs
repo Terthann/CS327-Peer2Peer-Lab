@@ -31,9 +31,9 @@ namespace Peer2PeerLab
                     localIP = ip;
                 }
             }
-            Console.WriteLine(ips.Count);
+            //Console.WriteLine(ips.Count);
             ips.Remove(localIP.ToString());
-            Console.WriteLine(ips.Count);
+            //Console.WriteLine(ips.Count);
 
             // Start the listening server.
             Task server = new Task(Listen);
@@ -42,7 +42,7 @@ namespace Peer2PeerLab
 
         void Listen()
         {
-            Console.WriteLine("Start Listen");
+            Console.WriteLine("Server listening...");
             IPEndPoint localEnd = new IPEndPoint(localIP, 33333);
             Socket listener = new Socket(localIP.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 
@@ -104,7 +104,7 @@ namespace Peer2PeerLab
             {
                 server.Send(Encoding.ASCII.GetBytes("ready"));
 
-                Console.WriteLine("Server is ready to recieve next file.");
+                Console.WriteLine("\nServer is ready to recieve next file.");
                 size = server.Receive(buffer);
                 message = new byte[size];
                 for (int i = 0; i < message.Length; i++)
@@ -115,7 +115,7 @@ namespace Peer2PeerLab
                 if (Encoding.ASCII.GetString(message) == "sync done")
                     break;
 
-                Console.WriteLine("Message Contains: " + Encoding.ASCII.GetString(message));
+                //Console.WriteLine("Message Contains: " + Encoding.ASCII.GetString(message));
                 string filePath = Encoding.ASCII.GetString(message);
 
                 Console.WriteLine("Server has file: " + files.HasFile(filePath));
@@ -130,7 +130,7 @@ namespace Peer2PeerLab
                     {
                         message[i] = buffer[i];
                     }
-                    Console.WriteLine("Message Contains: " + message.Length);
+                    //Console.WriteLine("Message Contains: " + message.Length);
 
                     Console.WriteLine("Files are the same: " + files.FileCompare(filePath, message));
                     if (files.FileCompare(filePath, message))
@@ -151,7 +151,7 @@ namespace Peer2PeerLab
                         {
                             message[i] = buffer[i];
                         }
-                        Console.WriteLine("Message Contains: " + Encoding.ASCII.GetString(message));
+                        //Console.WriteLine("Message Contains: " + Encoding.ASCII.GetString(message));
 
                         DateTime date = DateTime.Parse(Encoding.ASCII.GetString(message));
                         DateTime date2 = DateTime.Parse(files.GetLastWrite(files.basePath + filePath).ToString());
@@ -199,7 +199,7 @@ namespace Peer2PeerLab
             {
                 size = server.Receive(buffer);
 
-                Console.WriteLine("Server checking if client has file...");
+                Console.WriteLine("\nServer checking if client has file...");
                 server.Send(Encoding.ASCII.GetBytes(s.Replace(files.basePath, "")));
 
                 size = server.Receive(buffer);
