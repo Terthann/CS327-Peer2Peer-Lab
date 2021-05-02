@@ -16,6 +16,7 @@ namespace Peer2PeerLab
         private IPAddress localIP;
         private AutoResetEvent connectDone = new AutoResetEvent(false);
         private AutoResetEvent syncDone = new AutoResetEvent(false);
+        private static Mutex mut = new Mutex();
 
         // Constructor.
         public ServerSocket(FileManager f, List<string> ips)
@@ -124,10 +125,16 @@ namespace Peer2PeerLab
             string endCondition = "";
             while (endCondition != "end")
             {
-                server.Receive(buffer);
-
-                if (Encoding.ASCII.GetString(buffer).Contains("sync"))
+                size = server.Receive(buffer);
+                message = new byte[size];
+                for (int i = 0; i < message.Length; i++)
                 {
+                    message[i] = buffer[i];
+                }
+
+                if (Encoding.ASCII.GetString(message) == "sync")
+                {
+                    mut.WaitOne();
                     Console.WriteLine("Server files syncing: " + files.isSyncing);
                     if (files.isSyncing)
                     {
@@ -137,7 +144,9 @@ namespace Peer2PeerLab
                     {
                         server.Send(Encoding.ASCII.GetBytes("server free"));
                         endCondition = "end";
+                        files.isSyncing = true;
                     }
+                    mut.ReleaseMutex();
                 }
             }
             Console.WriteLine("End recieved.");
@@ -324,6 +333,10 @@ namespace Peer2PeerLab
             server.Receive(buffer);
 
             server.Send(Encoding.ASCII.GetBytes("sync done"));
+
+            mut.WaitOne();
+            files.isSyncing = false;
+            mut.ReleaseMutex();
         }
     }
 }
