@@ -67,20 +67,64 @@ namespace Peer2PeerLab
             Socket listener = (Socket)result.AsyncState;
             Socket server = listener.EndAccept(result);
 
-            //server.BeginReceive();
             byte[] buffer = new byte[256];
+
+            server.Receive(buffer);
+            Console.WriteLine("Buffer Contains: " + Encoding.ASCII.GetString(buffer));
+
+            if (Encoding.ASCII.GetString(buffer).Contains("p2p system"))
+            {
+                server.Send(Encoding.ASCII.GetBytes("true"));
+            }
+
+            while (true)
+            {
+                SyncFiles(server, buffer);
+            }
+        }
+
+        public IEnumerable<byte[]> EnumerateFileBlocks(Socket server)
+        {
+            Console.WriteLine("Start file transfer.");
+            byte[] buffer = new byte[1024];
+            int size = server.Receive(buffer);
+            byte[] message = new byte[size];
+
+            for (int i = 0; i < message.Length; i++)
+            {
+                message[i] = buffer[i];
+            }
+
+            long fileSize = long.Parse(Encoding.ASCII.GetString(message));
+            if (fileSize % 1024 == 0)
+                fileSize = fileSize / 1024;
+            else
+                fileSize = (fileSize / 1024) + 1;
+
+            server.Send(Encoding.ASCII.GetBytes("ready"));
+
+            for (int j = 0; j < (int) fileSize; j++)
+            {
+                size = server.Receive(buffer);
+                message = new byte[size];
+
+                for (int i = 0; i < message.Length; i++)
+                {
+                    message[i] = buffer[i];
+                }
+
+                yield return message;
+            }
+        }
+
+        private void SyncFiles(Socket server, byte[] buffer)
+        {
             int size;
             byte[] message;
             string endCondition = "";
             while (endCondition != "end")
             {
                 server.Receive(buffer);
-                Console.WriteLine("Buffer Contains: " + Encoding.ASCII.GetString(buffer));
-
-                if (Encoding.ASCII.GetString(buffer).Contains("p2p system"))
-                {
-                    server.Send(Encoding.ASCII.GetBytes("true"));
-                }
 
                 if (Encoding.ASCII.GetString(buffer).Contains("sync"))
                 {
@@ -280,40 +324,6 @@ namespace Peer2PeerLab
             server.Receive(buffer);
 
             server.Send(Encoding.ASCII.GetBytes("sync done"));
-        }
-
-        public IEnumerable<byte[]> EnumerateFileBlocks(Socket server)
-        {
-            Console.WriteLine("Start file transfer.");
-            byte[] buffer = new byte[1024];
-            int size = server.Receive(buffer);
-            byte[] message = new byte[size];
-
-            for (int i = 0; i < message.Length; i++)
-            {
-                message[i] = buffer[i];
-            }
-
-            long fileSize = long.Parse(Encoding.ASCII.GetString(message));
-            if (fileSize % 1024 == 0)
-                fileSize = fileSize / 1024;
-            else
-                fileSize = (fileSize / 1024) + 1;
-
-            server.Send(Encoding.ASCII.GetBytes("ready"));
-
-            for (int j = 0; j < (int) fileSize; j++)
-            {
-                size = server.Receive(buffer);
-                message = new byte[size];
-
-                for (int i = 0; i < message.Length; i++)
-                {
-                    message[i] = buffer[i];
-                }
-
-                yield return message;
-            }
         }
     }
 }
