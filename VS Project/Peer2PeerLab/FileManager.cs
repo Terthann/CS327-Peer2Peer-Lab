@@ -8,19 +8,18 @@ using System.Threading.Tasks;
 
 namespace Peer2PeerLab
 {
+    // Manages the local files to sync.
     class FileManager
     {
         // Flag to check if files are currently being synced.
         public bool isSyncing;
-        // Flag to check if any files updated.
-        public bool filesUpdated;
         // The path to the .exe file.
         public string basePath;
         // The patht to the sync folder.
         public string syncPath;
         // Table to store files and their hashes.
         public Dictionary<string, byte[]> localFiles;
-
+        // Watches for file changes.
         private FileSystemWatcher watcher;
 
         // Constructor.
@@ -28,7 +27,6 @@ namespace Peer2PeerLab
         {
             // Initialize variables.
             isSyncing = false;
-            filesUpdated = false;
             basePath = Directory.GetCurrentDirectory();
             syncPath = basePath + "\\Files to Sync";
             localFiles = new Dictionary<string, byte[]>();
@@ -36,6 +34,7 @@ namespace Peer2PeerLab
             // If the sync folder exists then add all files in it to the table, otherwise create the folder.
             if (Directory.Exists(syncPath))
             {
+                Console.WriteLine("Preparing files for sync...");
                 // For each file generate a hash and save the file and hash to the table.
                 foreach (string s in EnumerateFilesRecursively(syncPath))
                 {
@@ -48,14 +47,16 @@ namespace Peer2PeerLab
                     // Add the file and its hash to the table.
                     localFiles.Add(file.FullName.Replace(basePath, ""), hash);
                 }
+                Console.WriteLine("Files ready to sync.\n");
             }
             else
             {
                 Console.WriteLine("Files to Sync directory did not exist.");
-                Console.WriteLine("Creating Files to Sync directory...");
+                Console.WriteLine("Creating Files to Sync directory...\n");
                 Directory.CreateDirectory(syncPath);
             }
 
+            // Create a file watcher to update the file table when a file is created, changed, or renamed.
             watcher = new FileSystemWatcher(syncPath);
             watcher.NotifyFilter = NotifyFilters.LastWrite
                 | NotifyFilters.FileName;
@@ -66,6 +67,7 @@ namespace Peer2PeerLab
             watcher.EnableRaisingEvents = true;
         }
 
+        // Called when a file is changed. (Based on last write)
         private void OnChanged(object sender, FileSystemEventArgs e)
         {
             if (e.ChangeType != WatcherChangeTypes.Changed)
@@ -73,6 +75,7 @@ namespace Peer2PeerLab
                 return;
             }
 
+            // Ignore changes while files being synced.
             if (isSyncing)
                 return;
 
@@ -87,36 +90,36 @@ namespace Peer2PeerLab
             // If hashes are not equal then update the hash.
             if (!HashCompare(localFiles[file.FullName.Replace(basePath, "")], hash))
             {
-                Console.WriteLine($"File Updated: {e.FullPath}");
+                Console.WriteLine($"File Updated: {e.FullPath}\n");
                 localFiles[file.FullName.Replace(basePath, "")] = hash;
-                filesUpdated = true;
             }
         }
-
+        // Called when a file is renamed.
         private void OnRenamed(object sender, RenamedEventArgs e)
         {
+            // Ignore changes while files being synced.
             if (isSyncing)
                 return;
 
             Console.WriteLine($"Renamed:");
             Console.WriteLine($"    Old: {e.OldFullPath}");
-            Console.WriteLine($"    New: {e.FullPath}");
+            Console.WriteLine($"    New: {e.FullPath}\n");
 
             // Add new file path with old hash.
             localFiles.Add(e.FullPath.Replace(basePath, ""), localFiles[e.OldFullPath.Replace(basePath, "")]);
 
             // Remove old file path.
             localFiles.Remove(e.OldFullPath.Replace(basePath, ""));
-
-            filesUpdated = true;
         }
+        // Called when a file is created.
         private void OnCreated(object sender, FileSystemEventArgs e)
         {
+            // Ignore changes while files being synced.
             if (isSyncing)
                 return;
 
             Console.WriteLine($"Created:");
-            Console.WriteLine($"    New: {e.FullPath}");
+            Console.WriteLine($"    New: {e.FullPath}\n");
 
             // Open the file and generate its hash, then close the file.
             FileInfo file = new FileInfo(e.FullPath);
@@ -126,8 +129,6 @@ namespace Peer2PeerLab
 
             // Add the file and its hash to the table.
             localFiles.Add(file.FullName.Replace(basePath, ""), hash);
-
-            filesUpdated = true;
         }
 
         // Enumerate all files in a given folder recursively. (Including entire sub-folder hierarchy)
@@ -145,40 +146,6 @@ namespace Peer2PeerLab
             // For each file in this directory.
             foreach (string s in Directory.EnumerateFiles(path))
                 yield return s;
-        }
-
-        // Update files table.
-        public void UpdateFiles()
-        {
-            // If the sync folder exists then add all files in it to the table, otherwise create the folder.
-            if (Directory.Exists(syncPath))
-            {
-                // For each file generate a hash and save the file and hash to the table.
-                foreach (string s in EnumerateFilesRecursively(syncPath))
-                {
-                    // Open the file and generate its hash, then close the file.
-                    FileInfo file = new FileInfo(s);
-                    FileStream fileStream = new FileStream(file.FullName, FileMode.Open);
-                    byte[] hash = new MD5CryptoServiceProvider().ComputeHash(fileStream);
-                    fileStream.Close();
-
-                    // If the file already exists in the table, replace the hash if changed. Otherwise, add the file and hash.
-                    if (localFiles.ContainsKey(file.FullName.Replace(basePath, "")))
-                    {
-                        // If hashes are not equal then update the hash.
-                        if (!HashCompare(localFiles[file.FullName.Replace(basePath, "")], hash))
-                            localFiles[file.FullName.Replace(basePath, "")] = hash;
-                    }
-                    else
-                        localFiles.Add(file.FullName.Replace(basePath, ""), hash);
-                }
-            }
-            else
-            {
-                Console.WriteLine("Files to Sync directory did not exist.");
-                Console.WriteLine("Creating Files to Sync directory...");
-                Directory.CreateDirectory(syncPath);
-            }
         }
 
         // Check if the file exists locally.

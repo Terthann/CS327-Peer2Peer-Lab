@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 
 namespace Peer2PeerLab
 {
+    // Creates a list of LAN IP addresses by pinging the LAN for active addresses.
     class NetworkProbe
     {
         // Mutex lock for working with threads.
@@ -29,12 +30,13 @@ namespace Peer2PeerLab
             probe.Start();
             // Block until probe finished.
             probeDone.WaitOne();
+            Console.WriteLine("Network probe finished.\n");
         }
 
         // Generate a ping to each potential local IP address.
         static void StartProbe()
         {
-            Console.WriteLine("Network probe starting...");
+            Console.WriteLine("Network probe started.");
 
             // Get the host IP address.
             IPHostEntry host = Dns.GetHostEntry(Dns.GetHostName());
@@ -105,7 +107,7 @@ namespace Peer2PeerLab
             // Check if waiting for more pings to finish.
             if (!WaitingForPings())
             {
-                Console.WriteLine("Done waiting.");
+                Console.WriteLine("Pinging finished.");
                 // Release the block.
                 probeDone.Set();
             }

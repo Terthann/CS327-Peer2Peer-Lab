@@ -10,17 +10,24 @@ using System.Timers;
 
 namespace Peer2PeerLab
 {
+    // Manages client side of connections.
     class ClientSocket
     {
+        // File Manager reference to access local files.
         private FileManager files;
+        // Server refernece to communicate with the local server.
         private ServerSocket server;
+        // Blocker for each connection to wait for successful connection.
         private Dictionary<string, AutoResetEvent> connects = new Dictionary<string, AutoResetEvent>();
+        // Mutex lock to protect shared variables.
         private static Mutex mut = new Mutex();
+        // Blocker to wait until a client is done syncing.
         private AutoResetEvent syncDone = new AutoResetEvent(false);
 
         // Constructor.
         public ClientSocket(FileManager f, ServerSocket s, List<string> ips)
         {
+            // Initialize varibales.
             files = f;
             server = s;
 
@@ -64,12 +71,13 @@ namespace Peer2PeerLab
                 // Initial Sync
                 SyncAllFiles(client, buffer);
 
-                // Checks for file changes every minute.
+                // OLD: Checks for file changes every minute.
+                // NEW: Sync every minute.
                 while (true)
                 {
                     Thread.Sleep(60000);
 
-                    if (files.filesUpdated)
+                    //if (files.filesUpdated)
                         SyncAllFiles(client, buffer);
                 }
             }
@@ -334,7 +342,6 @@ namespace Peer2PeerLab
 
             // Finished Syncing
             files.isSyncing = false;
-            files.filesUpdated = false;
             syncDone.Set();
         }
     }

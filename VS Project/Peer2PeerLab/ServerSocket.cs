@@ -10,18 +10,26 @@ using System.Threading.Tasks;
 
 namespace Peer2PeerLab
 {
+    // Manages server side of connections.
     class ServerSocket
     {
+        // File Manager reference to access local files.
         private FileManager files;
+        // The IP of the host.
         private IPAddress localIP;
+        // Blocker to wait for one client to connect before accepting the next client.
         private AutoResetEvent connectDone = new AutoResetEvent(false);
+        // Blocker to wait until the server is done syncing.
         private AutoResetEvent syncDone = new AutoResetEvent(false);
+        // Mutex lock to protect shared variables.
         private static Mutex mut = new Mutex();
 
         // Constructor.
         public ServerSocket(FileManager f, List<string> ips)
         {
+            // Initialize varibales.
             files = f;
+
             // Get the IP address of the server.
             IPHostEntry host = Dns.GetHostEntry(Dns.GetHostName());
             foreach (IPAddress ip in host.AddressList)
@@ -36,22 +44,27 @@ namespace Peer2PeerLab
             ips.Remove(localIP.ToString());
             //Console.WriteLine(ips.Count);
 
+            Console.WriteLine("Server started.");
             // Start the listening server.
             Task server = new Task(Listen);
             server.Start();
         }
 
+        // Listen for connection requests.
         void Listen()
         {
             Console.WriteLine("Server listening...");
+            // Create socket to listen. Using port 33333 as unique entry point.
             IPEndPoint localEnd = new IPEndPoint(localIP, 33333);
             Socket listener = new Socket(localIP.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 
+            // Start listening.
             listener.Bind(localEnd);
             listener.Listen(100);
 
             while (true)
             {
+                // Get ready to accept the next connection attempt.
                 listener.BeginAccept(new AsyncCallback(ServerAcceptCallback), listener);
 
                 // Lock the blocker.
@@ -59,31 +72,44 @@ namespace Peer2PeerLab
             }
         }
 
+        // Accept connection attempt.
         void ServerAcceptCallback(IAsyncResult result)
         {
-            Console.WriteLine("Server Connected.");
+            Console.WriteLine("Server accepted connection to client.");
             // Free the blocker.
             connectDone.Set();
 
+            // Create new socket connected to client.
             Socket listener = (Socket)result.AsyncState;
             Socket server = listener.EndAccept(result);
 
+            // Buffer for incoming messages.
             byte[] buffer = new byte[256];
 
+            // Verify if client is part of P2P system.
+            Console.WriteLine("Verifying client...");
             server.Receive(buffer);
-            Console.WriteLine("Buffer Contains: " + Encoding.ASCII.GetString(buffer));
 
             if (Encoding.ASCII.GetString(buffer).Contains("p2p system"))
             {
+                Console.WriteLine("Connected with P2P system.");
                 server.Send(Encoding.ASCII.GetBytes("true"));
             }
+            else
+            {
+                Console.WriteLine("Not connected with P2P system.");
+                server.Shutdown(SocketShutdown.Both);
+                server.Close();
+            }
 
+            // Start syncing.
             while (true)
             {
                 SyncFiles(server, buffer);
             }
         }
 
+        // Receive blocks of a file.
         public IEnumerable<byte[]> EnumerateFileBlocks(Socket server)
         {
             Console.WriteLine("Start file transfer.");
