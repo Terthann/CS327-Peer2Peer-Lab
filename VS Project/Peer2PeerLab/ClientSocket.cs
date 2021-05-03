@@ -41,6 +41,7 @@ namespace Peer2PeerLab
             }
         }
 
+        // Attempt to connect to the IP address and sync files.
         void Connect(string ip)
         {
             //Console.WriteLine("Start Connect");
@@ -50,6 +51,7 @@ namespace Peer2PeerLab
 
             try
             {
+                // Attempt to connect.
                 client.BeginConnect(localEnd, new AsyncCallback(ClientConnectCallback), client);
             }
             catch (Exception e)
@@ -61,9 +63,8 @@ namespace Peer2PeerLab
             connects[ip].WaitOne();
 
             byte[] buffer = new byte[256];
-            //byte[] message;
-            //int size;
 
+            // Check if the connection is between a client and server of this application.
             if (CheckP2PSystem(client, buffer))
             {
                 Console.WriteLine("Connected with P2P system.");
@@ -71,14 +72,12 @@ namespace Peer2PeerLab
                 // Initial Sync
                 SyncAllFiles(client, buffer);
 
-                // OLD: Checks for file changes every minute.
-                // NEW: Sync every minute.
+                // Sync every minute.
                 while (true)
                 {
                     Thread.Sleep(60000);
 
-                    //if (files.filesUpdated)
-                        SyncAllFiles(client, buffer);
+                    SyncAllFiles(client, buffer);
                 }
             }
             else
@@ -89,6 +88,7 @@ namespace Peer2PeerLab
             }
         }
 
+        // Called when connection made.
         void ClientConnectCallback(IAsyncResult result)
         {
             try
@@ -107,6 +107,7 @@ namespace Peer2PeerLab
             }
         }
 
+        // Check if the connection is between a client and server of this application.
         bool CheckP2PSystem(Socket client, byte[] buffer)
         {
             Console.WriteLine("Client checking if P2P system...");
@@ -118,17 +119,20 @@ namespace Peer2PeerLab
             for (int i = 0; i < message.Length; i++)
                 message[i] = buffer[i];
 
+            // If the message returned is not 'true' then not connected with a server of this application.
             if (Encoding.ASCII.GetString(message) == "true")
                 return true;
             else
                 return false;
         }
 
+        // Compare all files and sync any that are not already the same in both client and server.
         void SyncAllFiles(Socket client, byte[] buffer)
         {
             byte[] message;
             int size;
 
+            // Check if another local client/server is currently syncing.
             mut.WaitOne();
             bool clientSyncing = files.isSyncing;
 
@@ -143,11 +147,12 @@ namespace Peer2PeerLab
             Console.WriteLine("Client is not currently syncing. Preparing to sync.");
             files.isSyncing = true;
             mut.ReleaseMutex();
-            Console.WriteLine("Client checking if server is currently syncing...");
-            client.Send(Encoding.ASCII.GetBytes("sync"));
 
+            // Loop until the server is ready to sync.
+            Console.WriteLine("Client checking if server is currently syncing...");
             do
             {
+                client.Send(Encoding.ASCII.GetBytes("sync"));
                 size = client.Receive(buffer);
                 message = new byte[size];
                 for (int i = 0; i < message.Length; i++)
@@ -159,6 +164,7 @@ namespace Peer2PeerLab
             Console.WriteLine("Server is free.");
             client.Send(Encoding.ASCII.GetBytes("start sync"));
 
+            // Loop for each client file.
             Console.WriteLine("Client starts syncing.");
             foreach (string s in files.EnumerateFilesRecursively(files.syncPath))
             {
@@ -174,10 +180,11 @@ namespace Peer2PeerLab
                     message[i] = buffer[i];
                 }
 
+                // If the server has the file, compare hashes. Otherwise, send the file.
                 Console.WriteLine("Server has file: " + Encoding.ASCII.GetString(message));
                 if (Encoding.ASCII.GetString(message) == "true")
                 {
-                    // compare hashes
+                    // Compare file hashes.
                     Console.WriteLine("Client compares hashes.");
                     client.Send(files.localFiles[s.Replace(files.basePath, "")]);
 
@@ -191,12 +198,12 @@ namespace Peer2PeerLab
                     Console.WriteLine("Files hashes are the same: " + Encoding.ASCII.GetString(message));
                     if (Encoding.ASCII.GetString(message) == "true")
                     {
-                        // files are the same, do nothing
+                        // Files are the same, do nothing.
                     }
                     else
                     {
-                        // files are different, need to sync.
-                        // send time
+                        // Files are different, need to sync.
+                        // Send file time
                         client.Send(Encoding.ASCII.GetBytes(files.GetLastWrite(s).ToString()));
 
                         size = client.Receive(buffer);
@@ -206,11 +213,11 @@ namespace Peer2PeerLab
                             message[i] = buffer[i];
                         }
 
-                        // 
+                        // If the client file is most recent, send it.
                         Console.WriteLine("Client file most recent: " + Encoding.ASCII.GetString(message));
                         if (Encoding.ASCII.GetString(message) == "true")
                         {
-                            // send client file
+                            // Send client file
                             Console.WriteLine("Client sends file.");
 
                             Console.WriteLine("File size: " + files.GetFileSize(s));
@@ -222,13 +229,13 @@ namespace Peer2PeerLab
                         }
                         else
                         {
-                            // do nothing
+                            // Do nothing.
                         }
                     }
                 }
                 else
                 {
-                    // send file
+                    // Server does not have file.
                     Console.WriteLine("Client sends file.");
 
                     Console.WriteLine("File size: " + files.GetFileSize(s));
@@ -248,11 +255,13 @@ namespace Peer2PeerLab
 
             client.Receive(buffer);
 
+            // Loop until the server says syncing is done.
             while (true)
             {
                 client.Send(Encoding.ASCII.GetBytes("ready"));
 
                 Console.WriteLine("\nClient is ready to recieve next file.");
+                // Receive file path. (Or sync done)
                 size = client.Receive(buffer);
                 message = new byte[size];
                 for (int i = 0; i < message.Length; i++)
@@ -260,17 +269,19 @@ namespace Peer2PeerLab
                     message[i] = buffer[i];
                 }
 
+                // Loop exit condition.
                 if (Encoding.ASCII.GetString(message) == "sync done")
                     break;
 
                 //Console.WriteLine("Message Contains: " + Encoding.ASCII.GetString(message));
                 string filePath = Encoding.ASCII.GetString(message);
 
+                // If the client has the file, compare hashes. Otherwise, send the file.
                 Console.WriteLine("Client has file: " + files.HasFile(filePath));
                 if (files.HasFile(filePath))
                 {
                     client.Send(Encoding.ASCII.GetBytes("true"));
-                    // compare hashes
+                    // Compare file hashes.
                     Console.WriteLine("Client is ready to compare hashes.");
                     size = client.Receive(buffer);
                     message = new byte[size];
@@ -301,6 +312,7 @@ namespace Peer2PeerLab
                         }
                         //Console.WriteLine("Message Contains: " + Encoding.ASCII.GetString(message));
 
+                        // Get dates in proper format. date = client file, date2 = server file
                         DateTime date = DateTime.Parse(Encoding.ASCII.GetString(message));
                         DateTime date2 = DateTime.Parse(files.GetLastWrite(files.basePath + filePath).ToString());
                         //Console.WriteLine(date.Ticks.ToString());
@@ -331,6 +343,7 @@ namespace Peer2PeerLab
                 }
                 else
                 {
+                    // Client does not have file.
                     client.Send(Encoding.ASCII.GetBytes("false"));
 
                     // Wait to recieve file.
