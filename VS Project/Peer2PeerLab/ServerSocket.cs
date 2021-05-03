@@ -92,21 +92,18 @@ namespace Peer2PeerLab
 
             if (Encoding.ASCII.GetString(buffer).Contains("p2p system"))
             {
-                Console.WriteLine("Connected with P2P system.");
+                Console.WriteLine("Connected with P2P system.\n");
                 server.Send(Encoding.ASCII.GetBytes("true"));
             }
             else
             {
-                Console.WriteLine("Not connected with P2P system.");
+                Console.WriteLine("Not connected with P2P system.\n");
                 server.Shutdown(SocketShutdown.Both);
                 server.Close();
             }
 
             // Start syncing.
-            while (true)
-            {
-                SyncFiles(server, buffer);
-            }
+            while (SyncFiles(server, buffer)) { }
         }
 
         // Receive blocks of a file.
@@ -142,16 +139,27 @@ namespace Peer2PeerLab
 
                 yield return message;
             }
+            Console.WriteLine("File transfer complete.");
         }
 
-        private void SyncFiles(Socket server, byte[] buffer)
+        private bool SyncFiles(Socket server, byte[] buffer)
         {
             int size;
             byte[] message;
             string endCondition = "";
             while (endCondition != "end")
             {
-                size = server.Receive(buffer);
+                int temp = 0;
+                try
+                {
+                    temp = server.Receive(buffer);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("Client closed connection.");
+                    return false;
+                }
+                size = temp;
                 message = new byte[size];
                 for (int i = 0; i < message.Length; i++)
                 {
@@ -161,7 +169,7 @@ namespace Peer2PeerLab
                 if (Encoding.ASCII.GetString(message) == "sync")
                 {
                     mut.WaitOne();
-                    Console.WriteLine("Server files syncing: " + files.isSyncing);
+                    Console.WriteLine("Server currently syncing: " + files.isSyncing);
                     if (files.isSyncing)
                     {
 
@@ -175,10 +183,10 @@ namespace Peer2PeerLab
                     mut.ReleaseMutex();
                 }
             }
-            Console.WriteLine("End recieved.");
+            Console.WriteLine("Server ready to sync.\n");
 
             server.Receive(buffer);
-
+            Console.WriteLine("Server receiving client files.");
             while (true)
             {
                 server.Send(Encoding.ASCII.GetBytes("ready"));
@@ -269,11 +277,11 @@ namespace Peer2PeerLab
                 }
             }
 
-            Console.WriteLine("Server finished syncing.");
+            Console.WriteLine("Server finished receiving.\n");
 
             server.Send(Encoding.ASCII.GetBytes("start sync"));
 
-            Console.WriteLine("Server starts syncing.");
+            Console.WriteLine("Server sending client files.");
             foreach (string s in files.EnumerateFilesRecursively(files.syncPath))
             {
                 size = server.Receive(buffer);
@@ -354,6 +362,7 @@ namespace Peer2PeerLab
                 }
             }
 
+            Console.WriteLine("\nServer finished sending.\n");
             Console.WriteLine("Server finished all syncing.");
 
             server.Receive(buffer);
@@ -363,6 +372,7 @@ namespace Peer2PeerLab
             mut.WaitOne();
             files.isSyncing = false;
             mut.ReleaseMutex();
+            return true;
         }
     }
 }
