@@ -18,6 +18,9 @@ namespace Peer2PeerLab
 
             ClientSocket client = new ClientSocket(files, server, probe.GetLANIP());
             Console.ReadLine();
+
+            client.stopClient = true;
+            Console.ReadLine();
         }
     }
 }

@@ -23,6 +23,8 @@ namespace Peer2PeerLab
         private static Mutex mut = new Mutex();
         // Blocker to wait until a client is done syncing.
         private AutoResetEvent syncDone = new AutoResetEvent(false);
+        // Flag to close the client.
+        public bool stopClient = false;
 
         // Constructor.
         public ClientSocket(FileManager f, ServerSocket s, List<string> ips)
@@ -73,12 +75,17 @@ namespace Peer2PeerLab
                 SyncAllFiles(client, buffer);
 
                 // Sync every minute.
-                while (true)
+                while (!stopClient)
                 {
                     Thread.Sleep(60000);
 
-                    SyncAllFiles(client, buffer);
+                    if (!stopClient)
+                        SyncAllFiles(client, buffer);
                 }
+
+                Console.WriteLine("Client stopped.");
+                client.Shutdown(SocketShutdown.Both);
+                client.Close();
             }
             else
             {

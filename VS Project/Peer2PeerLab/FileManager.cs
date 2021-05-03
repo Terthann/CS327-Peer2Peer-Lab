@@ -63,6 +63,7 @@ namespace Peer2PeerLab
             watcher.Created += OnCreated;
             watcher.Changed += OnChanged;
             watcher.Renamed += OnRenamed;
+            watcher.Deleted += OnDeleted;
             watcher.IncludeSubdirectories = true;
             watcher.EnableRaisingEvents = true;
         }
@@ -129,6 +130,18 @@ namespace Peer2PeerLab
 
             // Add the file and its hash to the table.
             localFiles.Add(file.FullName.Replace(basePath, ""), hash);
+        }
+        // Called when a file is deleted.
+        private void OnDeleted(object sender, FileSystemEventArgs e)
+        {
+            // Ignore changes while files being synced.
+            if (isSyncing)
+                return;
+
+            Console.WriteLine($"Deleted: {e.FullPath}");
+
+            // Remove file path.
+            localFiles.Remove(e.FullPath.Replace(basePath, ""));
         }
 
         // Enumerate all files in a given folder recursively. (Including entire sub-folder hierarchy)
